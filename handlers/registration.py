@@ -1,3 +1,5 @@
+import sqlite3
+
 from aiogram import types, Dispatcher
 from config import bot, MEDIA_DESTINATION
 from aiogram.dispatcher.filters.state import State, StatesGroup
@@ -16,6 +18,14 @@ class RegistrationStates(StatesGroup):
 
 
 async def registration_start(call: types.CallbackQuery):
+    await bot.send_message(
+        chat_id=call.from_user.id,
+        text='Send me ur Nickname, please!!!'
+    )
+    await RegistrationStates.nickname.set()
+
+
+async def update_profile_call(call: types.CallbackQuery):
     await bot.send_message(
         chat_id=call.from_user.id,
         text='Send me ur Nickname, please!!!'
@@ -97,15 +107,36 @@ async def load_photo(message: types.Message,
         destination_dir=MEDIA_DESTINATION
     )
     print(path.name)
+    profile = db.sql_select_profile(
+        tg_id=message.from_user.id
+    )
     async with state.proxy() as data:
-        db.sql_insert_profile(
-            tg_id=message.from_user.id,
-            nickname=data['nickname'],
-            bio=data['biography'],
-            age=data['age'],
-            gender=data['gender'],
-            photo=path.name
-        )
+        if not profile:
+            db.sql_insert_profile(
+                tg_id=message.from_user.id,
+                nickname=data['nickname'],
+                bio=data['biography'],
+                age=data['age'],
+                gender=data['gender'],
+                photo=path.name
+            )
+            await bot.send_message(
+                chat_id=message.from_user.id,
+                text="U have registered successfully 🙌🏻🍾🔥"
+            )
+        elif profile:
+            db.sql_update_profile(
+                nickname=data['nickname'],
+                bio=data['biography'],
+                age=data['age'],
+                gender=data['gender'],
+                photo=path.name,
+                tg_id=message.from_user.id
+            )
+            await bot.send_message(
+                chat_id=message.from_user.id,
+                text="U have re-registered successfully 🙌🏻🍾🔥"
+            )
         with open(path.name, 'rb') as photo:
             await bot.send_photo(
                 chat_id=message.from_user.id,
@@ -118,10 +149,6 @@ async def load_photo(message: types.Message,
                 ),
                 parse_mode=types.ParseMode.MARKDOWN
             )
-        await bot.send_message(
-            chat_id=message.from_user.id,
-            text="U have registered successfully 🙌🏻🍾🔥"
-        )
         await state.finish()
 
 
@@ -129,6 +156,10 @@ def register_registration_handlers(dp: Dispatcher):
     dp.register_callback_query_handler(
         registration_start,
         lambda call: call.data == "registration"
+    )
+    dp.register_callback_query_handler(
+        update_profile_call,
+        lambda call: call.data == "update_profile"
     )
     dp.register_message_handler(
         load_nickname,
