@@ -1,0 +1,16 @@
+
+
+<div class="container">
+    <a href="https://google.com">google</a>
+    <div>
+        <div>
+            <a href="https://bing.com" class="bing">bing</a>
+        </div>
+    </div>
+</div>
+<span>
+
+    selector = Selector(text=response.text)
+    google_link = selector.xpath('//div[@class="container"]/a/text()').get()
+    bing_link = selector.xpath('//div[@class="container"]//a[@class="bing"]/text()').get()
+</span>
